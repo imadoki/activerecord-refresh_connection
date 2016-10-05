@@ -14,6 +14,9 @@ module ActiveRecord
       def call(env)
         testing = env.key?('rack.test')
 
+        if @prev_schema_cache
+          ActiveRecord::Base.connection.schema_cache = @prev_schema_cache
+        end
         response = @app.call(env)
 
         response[2] = ::Rack::BodyProxy.new(response[2]) do
@@ -29,7 +32,13 @@ module ActiveRecord
 
       private
 
+      def preserve_schema_cache
+        @prev_schema_cache = ActiveRecord::Base.connection.schema_cache
+        @prev_schema_cache.connection = nil
+      end
+
       def clear_connections
+        preserve_schema_cache
         if should_clear_all_connections?
           ActiveRecord::Base.clear_all_connections!
         else
