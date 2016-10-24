@@ -1,7 +1,7 @@
 module ActiveRecord
   module ConnectionAdapters
     class RefreshConnectionManagement
-      DEFAULT_OPTIONS = {max_requests: 1}
+      DEFAULT_OPTIONS = {max_requests: 1, schema_cache_target: ActiveRecord::Base}
 
       def initialize(app, options = {})
         @app = app
@@ -15,7 +15,7 @@ module ActiveRecord
         testing = env.key?('rack.test')
 
         if @prev_schema_cache
-          ActiveRecord::Base.connection.schema_cache = @prev_schema_cache
+          schema_cache_target.connection.schema_cache = @prev_schema_cache
         end
         response = @app.call(env)
 
@@ -33,7 +33,7 @@ module ActiveRecord
       private
 
       def preserve_schema_cache
-        @prev_schema_cache = ActiveRecord::Base.connection.schema_cache
+        @prev_schema_cache = schema_cache_target.connection.schema_cache
         @prev_schema_cache.connection = nil
       end
 
@@ -63,6 +63,10 @@ module ActiveRecord
 
       def max_requests
         @options[:max_requests]
+      end
+
+      def schema_cache_target
+        @options[:schema_cache_target]
       end
     end
   end
