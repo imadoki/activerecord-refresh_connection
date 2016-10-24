@@ -66,7 +66,13 @@ module ActiveRecord
       end
 
       def schema_cache_target
-        @options[:schema_cache_target]
+        unless @schema_cache_target
+          @schema_cache_target = @options[:schema_cache_target]
+          if @schema_cache_target.is_a?(String)
+            @schema_cache_target = Kernel.const_get(@schema_cache_target)
+          end
+        end
+        @schema_cache_target
       end
     end
   end
