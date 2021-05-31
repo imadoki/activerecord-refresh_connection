@@ -39,10 +39,22 @@ module ActiveRecord
 
       def clear_connections
         preserve_schema_cache
-        if should_clear_all_connections?
-          ActiveRecord::Base.clear_all_connections!
+        if ActiveRecord::VERSION::MAJOR >= 6
+          if should_clear_all_connections?
+            ActiveRecord::Base.connection_handlers.each_value do |connection_handler|
+              connection_handler.clear_all_connections!
+            end
+          else
+            ActiveRecord::Base.connection_handlers.each_value do |connection_handler|
+              connection_handler.clear_active_connections!
+            end
+          end
         else
-          ActiveRecord::Base.clear_active_connections!
+          if should_clear_all_connections?
+            ActiveRecord::Base.clear_all_connections!
+          else
+            ActiveRecord::Base.clear_active_connections!
+          end
         end
       end
 
