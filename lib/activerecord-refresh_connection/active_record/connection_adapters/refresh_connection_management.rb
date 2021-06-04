@@ -63,7 +63,7 @@ module ActiveRecord
 
       def clear_legacy_compatible_connections
         if should_clear_all_connections?
-          ActiveRecord::Base.connection_handlers.each do |handler|
+          ActiveRecord::Base.connection_handlers.each_value do |handler|
             handler.connection_pool_list.each(&:disconnect!)
           end
         else
