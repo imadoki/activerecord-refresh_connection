@@ -9,6 +9,7 @@ module ActiveRecord
         @mutex = Mutex.new
 
         resolve_clear_connections
+        p @clear_connections
         reset_remain_count
       end
 
@@ -64,7 +65,7 @@ module ActiveRecord
       def clear_legacy_compatible_connections
         if should_clear_all_connections?
           ActiveRecord::Base.connection_handlers.each_value do |handler|
-            handler.all_connection_pools.each(&:disconnect)
+            handler.connection_pool_list.each(&:disconnect)
           end
         else
           ActiveRecord::Base.connection_handlers.each_value do |handler|
