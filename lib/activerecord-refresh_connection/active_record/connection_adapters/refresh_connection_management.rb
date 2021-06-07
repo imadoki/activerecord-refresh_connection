@@ -2,8 +2,6 @@ module ActiveRecord
   module ConnectionAdapters
     class RefreshConnectionManagement
       DEFAULT_OPTIONS = {max_requests: 1, schema_cache_target: ActiveRecord::Base}
-      AR_VERSION_6_1 = "6.1".freeze
-      AR_VERSION_6_0 = "6.0".freeze
 
       def initialize(app, options = {})
         @app = app
@@ -49,10 +47,14 @@ module ActiveRecord
         ar_version = ActiveRecord.gem_version.to_s
 
         @clear_connections =
-          if ar_version >= AR_VERSION_6_1
-            :clear_multi_db_connections
-          elsif ar_version >= AR_VERSION_6_0
-            :clear_legacy_compatible_connections
+          if ar_version >= "6.1"
+            if ActiveRecord::Base.legacy_connection_handling
+              :clear_legacy_compatible_connections
+            else
+              :clear_multi_db_connections
+            end
+          elsif ar_version >= "6.0"
+            :clear_ar_6_0_connections
           else
             :clear_legacy_connections
           end
@@ -69,6 +71,20 @@ module ActiveRecord
       end
 
       def clear_legacy_compatible_connections
+        if should_clear_all_connections?
+          ActiveRecord::Base.connection_handlers.each_value do |handler|
+            handler.connection_pool_list.each(&:disconnect!)
+          end
+        else
+          ActiveRecord::Base.connection_handlers.each_value do |handler|
+            handler.connection_pool_list.each do |pool|
+              pool.release_connection if pool.active_connection? && !pool.connection.transaction_open?
+            end
+          end
+        end
+      end
+
+      def clear_ar_6_0_connections
         if should_clear_all_connections?
           ActiveRecord::Base.connection_handlers.each_value(&:clear_all_connections!)
         else
